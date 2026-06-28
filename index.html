@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Angle Drop Sorter</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --good: #16a34a;
+      --bad: #dc2626;
+      --accent: #2563eb;
+      --soft: #e5e7eb;
+      --acute: #fef3c7;
+      --right: #dbeafe;
+      --obtuse: #fce7f3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+      background: var(--panel);
+      border-radius: 22px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.12);
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .top {
+      padding: 14px 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 30px);
+    }
+
+    .status {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-weight: 700;
+    }
+
+    .pill {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .rulebar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px 18px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 700;
+      text-align: center;
+      font-size: clamp(13px, 2vw, 16px);
+    }
+
+    .rule {
+      padding: 9px 8px;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .rule:nth-child(1) { background: var(--acute); }
+    .rule:nth-child(2) { background: var(--right); }
+    .rule:nth-child(3) { background: var(--obtuse); }
+
+    .game-wrap {
+      position: relative;
+      background: linear-gradient(#eef5ff, #ffffff);
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      min-height: 430px;
+      max-height: 620px;
+      touch-action: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.88);
+      padding: 20px;
+      text-align: center;
+      z-index: 5;
+    }
+
+    .card {
+      width: min(620px, 94%);
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.14);
+      border: 1px solid #e5e7eb;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: clamp(26px, 5vw, 42px);
+    }
+
+    .card p {
+      margin: 10px 0;
+      line-height: 1.45;
+      color: #374151;
+      font-size: clamp(15px, 2.5vw, 18px);
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      border-radius: 16px;
+      padding: 13px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #1d4ed8;
+      margin-top: 12px;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 #1d4ed8;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 14px 18px 18px;
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .move-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 18px;
+      background: #111827;
+      color: white;
+      font-size: clamp(18px, 4vw, 28px);
+      font-weight: 900;
+      padding: 16px;
+      cursor: pointer;
+      min-height: 62px;
+    }
+
+    .move-btn:active {
+      transform: scale(0.98);
+    }
+
+    .feedback {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      font-weight: 900;
+      font-size: clamp(16px, 3vw, 23px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 4;
+      transition: opacity 0.15s ease;
+      text-align: center;
+      width: max-content;
+      max-width: 92%;
+    }
+
+    .feedback.show {
+      opacity: 1;
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 14px;
+      padding: 0 18px 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 6px;
+      }
+
+      .top {
+        justify-content: center;
+        text-align: center;
+        padding: 10px;
+      }
+
+      .rulebar {
+        grid-template-columns: 1fr;
+        padding: 8px 10px;
+      }
+
+      .game-wrap {
+        min-height: 420px;
+        aspect-ratio: 9 / 12;
+      }
+
+      .controls {
+        padding: 10px;
+      }
+
+      .small-note {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="top">
+      <h1>Angle Drop Sorter</h1>
+      <div class="status">
+        <div class="pill">Question: <span id="qNo">0</span> / <span id="totalQ">10</span></div>
+        <div class="pill">Score: <span id="score">0</span></div>
+      </div>
+    </div>
+
+    <div class="rulebar">
+      <div class="rule">Acute: smaller than 90°</div>
+      <div class="rule">Right: exactly 90°</div>
+      <div class="rule">Obtuse: bigger than 90°</div>
+    </div>
+
+    <section class="game-wrap" id="gameWrap">
+      <canvas id="game"></canvas>
+      <div class="feedback" id="feedback"></div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="card">
+          <h2>Sort the Angles</h2>
+          <p>Move the three bins left or right. Catch each falling angle in the correct bin.</p>
+          <p><strong>Acute</strong> is smaller than 90°. <strong>Right</strong> is exactly 90°. <strong>Obtuse</strong> is bigger than 90°.</p>
+          <button class="btn" id="startBtn">Start Game</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="endOverlay" style="display:none;">
+        <div class="card">
+          <h2 id="endTitle">Great sorting!</h2>
+          <p id="endText"></p>
+          <button class="btn" id="restartBtn">Play Again</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button class="move-btn" id="leftBtn">← Move Bins</button>
+      <button class="move-btn" id="rightBtn">Move Bins →</button>
+    </div>
+
+    <div class="small-note">Keyboard: use ← and →. Touch: use the buttons, or drag the bin tray.</div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const gameWrap = document.getElementById("gameWrap");
+    const qNoEl = document.getElementById("qNo");
+    const totalQEl = document.getElementById("totalQ");
+    const scoreEl = document.getElementById("score");
+    const feedbackEl = document.getElementById("feedback");
+    const startOverlay = document.getElementById("startOverlay");
+    const endOverlay = document.getElementById("endOverlay");
+    const endText = document.getElementById("endText");
+    const endTitle = document.getElementById("endTitle");
+
+    const TOTAL = 10;
+    totalQEl.textContent = TOTAL;
+
+    let W = 900;
+    let H = 560;
+    let running = false;
+    let score = 0;
+    let question = 0;
+    let current = null;
+    let trayX = 0;
+    let trayTargetX = 0;
+    let trayW = 540;
+    let trayH = 90;
+    let binW = trayW / 3;
+    let binY = 0;
+    let keys = {};
+    let feedbackTimer = null;
+    let isDraggingTray = false;
+    let dragOffsetX = 0;
+    let animationId = null;
+
+    const angleSet = [
+      { type: "acute", deg: 30 },
+      { type: "acute", deg: 45 },
+      { type: "acute", deg: 60 },
+      { type: "right", deg: 90 },
+      { type: "obtuse", deg: 110 },
+      { type: "obtuse", deg: 125 },
+      { type: "obtuse", deg: 140 },
+      { type: "obtuse", deg: 150 },
+      { type: "acute", deg: 35 },
+      { type: "acute", deg: 55 }
+    ];
+
+    const typeInfo = {
+      acute: {
+        label: "ACUTE",
+        rule: "smaller than 90°",
+        fill: "#fef3c7",
+        stroke: "#b45309"
+      },
+      right: {
+        label: "RIGHT",
+        rule: "exactly 90°",
+        fill: "#dbeafe",
+        stroke: "#1d4ed8"
+      },
+      obtuse: {
+        label: "OBTUSE",
+        rule: "bigger than 90°",
+        fill: "#fce7f3",
+        stroke: "#be185d"
+      }
+    };
+
+    function resize() {
+      const rect = gameWrap.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      W = rect.width;
+      H = rect.height;
+
+      trayW = Math.min(W * 0.82, 560);
+      trayH = Math.max(72, Math.min(100, H * 0.16));
+      binW = trayW / 3;
+      binY = H - trayH - 18;
+
+      if (!running) {
+        trayX = (W - trayW) / 2;
+        trayTargetX = trayX;
+      } else {
+        trayX = clamp(trayX, 8, W - trayW - 8);
+        trayTargetX = clamp(trayTargetX, 8, W - trayW - 8);
+      }
+
+      draw();
+    }
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function shuffledAngles() {
+      const arr = [...angleSet];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.slice(0, TOTAL);
+    }
+
+    let questions = shuffledAngles();
+
+    function startGame() {
+      score = 0;
+      question = 0;
+      questions = shuffledAngles();
+      running = true;
+      startOverlay.style.display = "none";
+      endOverlay.style.display = "none";
+      scoreEl.textContent = score;
+      nextAngle();
+      loop();
+    }
+
+    function endGame() {
+      running = false;
+      cancelAnimationFrame(animationId);
+      endTitle.textContent = score >= 8 ? "Excellent sorting!" : "Good practice!";
+      endText.textContent = "You scored " + score + " out of " + TOTAL + ".";
+      endOverlay.style.display = "grid";
+      draw();
+    }
+
+    function nextAngle() {
+      if (question >= TOTAL) {
+        endGame();
+        return;
+      }
+
+      const data = questions[question];
+      question++;
+      qNoEl.textContent = question;
+      scoreEl.textContent = score;
+
+      const size = Math.max(60, Math.min(92, W * 0.1));
+      current = {
+        type: data.type,
+        deg: data.deg,
+        x: Math.random() * (W * 0.68) + W * 0.16,
+        y: -size,
+        size,
+        speed: Math.max(1.65, Math.min(2.7, H / 245)),
+        landed: false
+      };
+    }
+
+    function showFeedback(text, isGood) {
+      clearTimeout(feedbackTimer);
+      feedbackEl.textContent = text;
+      feedbackEl.style.borderColor = isGood ? "#16a34a" : "#dc2626";
+      feedbackEl.style.color = isGood ? "#166534" : "#991b1b";
+      feedbackEl.classList.add("show");
+      feedbackTimer = setTimeout(() => {
+        feedbackEl.classList.remove("show");
+      }, 1050);
+    }
+
+    function checkLanding() {
+      if (!current || current.landed) return;
+
+      const angleCenterX = current.x;
+      if (current.y + current.size * 0.55 < binY + 8) return;
+
+      current.landed = true;
+
+      const relativeX = angleCenterX - trayX;
+      let caught = null;
+
+      if (relativeX >= 0 && relativeX <= trayW) {
+        const binIndex = Math.floor(relativeX / binW);
+        caught = ["acute", "right", "obtuse"][clamp(binIndex, 0, 2)];
+      }
+
+      if (caught === current.type) {
+        score++;
+        scoreEl.textContent = score;
+        showFeedback("Correct! It is " + typeInfo[current.type].label + ".", true);
+      } else {
+        const correct = typeInfo[current.type].label;
+        const rule = typeInfo[current.type].rule;
+        showFeedback("It is " + correct + " — " + rule + ".", false);
+      }
+
+      setTimeout(nextAngle, 700);
+    }
+
+    function moveTray(dx) {
+      trayTargetX = clamp(trayTargetX + dx, 8, W - trayW - 8);
+    }
+
+    function update() {
+      if (!running) return;
+
+      const step = Math.max(8, W * 0.018);
+
+      if (keys.ArrowLeft) moveTray(-step);
+      if (keys.ArrowRight) moveTray(step);
+
+      trayX += (trayTargetX - trayX) * 0.35;
+
+      if (current && !current.landed) {
+        current.y += current.speed;
+        checkLanding();
+
+        if (current.y > H + 80) {
+          current.landed = true;
+          showFeedback("Missed! It was " + typeInfo[current.type].label + ".", false);
+          setTimeout(nextAngle, 650);
+        }
+      }
+    }
+
+    function drawAnglePiece(a) {
+      if (!a) return;
+
+      const info = typeInfo[a.type];
+      const cx = a.x;
+      const cy = a.y;
+      const r = a.size;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.strokeStyle = info.stroke;
+      ctx.lineWidth = 3;
+      roundRect(-r * 0.95, -r * 0.88, r * 1.9, r * 1.65, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      const vertexX = -r * 0.48;
+      const vertexY = r * 0.34;
+      const rayLen = r * 1.15;
+      const rad = -a.deg * Math.PI / 180;
+
+      ctx.lineCap = "round";
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = "#111827";
+
+      ctx.beginPath();
+      ctx.moveTo(vertexX, vertexY);
+      ctx.lineTo(vertexX + rayLen, vertexY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(vertexX, vertexY);
+      ctx.lineTo(vertexX + rayLen * Math.cos(rad), vertexY + rayLen * Math.sin(rad));
+      ctx.stroke();
+
+      ctx.strokeStyle = info.stroke;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(vertexX, vertexY, r * 0.38, 0, rad, true);
+      ctx.stroke();
+
+      if (a.type === "right") {
+        const s = r * 0.24;
+        ctx.strokeStyle = "#1d4ed8";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(vertexX + s, vertexY);
+        ctx.lineTo(vertexX + s, vertexY - s);
+        ctx.lineTo(vertexX, vertexY - s);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "900 " + Math.max(20, r * 0.32) + "px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(a.deg + "°", r * 0.25, -r * 0.42);
+
+      ctx.fillStyle = info.stroke;
+      ctx.font = "900 " + Math.max(14, r * 0.18) + "px Arial";
+      ctx.fillText(info.label, r * 0.25, -r * 0.12);
+
+      ctx.restore();
+    }
+
+    function drawTray() {
+      const labels = [
+        { type: "acute", sub: "< 90°" },
+        { type: "right", sub: "= 90°" },
+        { type: "obtuse", sub: "> 90°" }
+      ];
+
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.12)";
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 5;
+
+      for (let i = 0; i < 3; i++) {
+        const x = trayX + i * binW;
+        const y = binY;
+        const info = typeInfo[labels[i].type];
+
+        ctx.fillStyle = info.fill;
+        ctx.strokeStyle = info.stroke;
+        ctx.lineWidth = 4;
+        roundRect(x, y, binW - 5, trayH, 18);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#111827";
+        ctx.font = "900 " + Math.max(16, trayH * 0.27) + "px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(info.label, x + (binW - 5) / 2, y + trayH * 0.38);
+
+        ctx.fillStyle = "#374151";
+        ctx.font = "800 " + Math.max(13, trayH * 0.18) + "px Arial";
+        ctx.fillText(labels[i].sub, x + (binW - 5) / 2, y + trayH * 0.68);
+      }
+
+      ctx.restore();
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.fillStyle = "#eff6ff";
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = "rgba(37,99,235,0.09)";
+      ctx.lineWidth = 1;
+
+      const gap = 34;
+      for (let x = 0; x < W; x += gap) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y < H; y += gap) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      roundRect(12, 12, Math.min(W - 24, 360), 44, 14);
+      ctx.fill();
+
+      ctx.fillStyle = "#374151";
+      ctx.font = "800 16px Arial";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Catch the angle in the correct bin.", 28, 34);
+    }
+
+    function roundRect(x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function draw() {
+      drawBackground();
+      drawTray();
+      drawAnglePiece(current);
+    }
+
+    function loop() {
+      update();
+      draw();
+      animationId = requestAnimationFrame(loop);
+    }
+
+    function pointerPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const p = e.touches ? e.touches[0] : e;
+      return { x: p.clientX - rect.left, y: p.clientY - rect.top };
+    }
+
+    function trayHit(x, y) {
+      return x >= trayX && x <= trayX + trayW && y >= binY && y <= binY + trayH;
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      const p = pointerPos(e);
+      if (trayHit(p.x, p.y)) {
+        isDraggingTray = true;
+        dragOffsetX = p.x - trayX;
+      }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isDraggingTray) return;
+      const p = pointerPos(e);
+      trayTargetX = clamp(p.x - dragOffsetX, 8, W - trayW - 8);
+      trayX = trayTargetX;
+    });
+
+    window.addEventListener("pointerup", () => {
+      isDraggingTray = false;
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        keys[e.key] = true;
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      keys[e.key] = false;
+    });
+
+    document.getElementById("leftBtn").addEventListener("click", () => moveTray(-Math.max(70, W * 0.13)));
+    document.getElementById("rightBtn").addEventListener("click", () => moveTray(Math.max(70, W * 0.13)));
+
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("restartBtn").addEventListener("click", startGame);
+
+    window.addEventListener("resize", resize);
+    resize();
+  </script>
+</body>
+</html>
